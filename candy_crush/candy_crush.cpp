@@ -219,7 +219,29 @@ int loadlevel()   //task2
     }
     return 0;
 }
-
+// Part 03 
+// This Function indicates the candy position converting pixels to rows and cols.
+void GetCandyPosition(int& row, int& col) {
+    row = (clickY - BOARD_Y) / CELL;
+    col = (clickX - BOARD_X) / CELL;
+}
+// This is used for the candies selection.
+void MouseClick() {
+    int row, col;
+    GetCandyPosition(row, col);
+    // This is used for 1st Candy if 1st candy is to be selected.
+    if (selRow == -1 && selCol == -1)
+    {
+        selRow = row;
+        selCol = col;
+    }
+    else if (selRow != -1 && selCol != -1)
+    {
+        // This Indicates for 2nd candy selection if 1st is already selected.
+        int SecondRow = row;
+        int SecondCol = col;
+    }
+}
 void handleInput()
 {
     readEvents(window, clicked, clickX, clickY, pressedKey);
