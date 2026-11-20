@@ -1,3 +1,4 @@
+#include<iostream>
 #include <SFML/Graphics.hpp>
 #include <optional>
 #include <string>
@@ -201,7 +202,8 @@ void setupGame()
     loadFont(font);
 }
 
-int loadlevel()   //task2
+//***task2***
+int loadlevel()
 {
     ifstream fin("levels.txt");
     if (!fin.is_open())
@@ -220,6 +222,61 @@ int loadlevel()   //task2
     return 0;
 }
 
+//***Task4***
+bool marked[8][8];
+int findMatches()
+{
+    int count = 0;
+    //making all elements of marked false
+    for (int r = 0; r < rows; r++)
+    {
+        for (int c = 0; c < cols; c++)
+        {
+            marked[r][c] = false;
+        }
+    }
+    // checking for all possible matches in a row
+    for (int r = 0; r < rows; r++)
+    {
+        for (int c = 0; c < cols - 2; c++)
+        {
+            if (board[r][c]!= 0 &&board[r][c] == board[r][c + 1] && board[r][c+1] == board[r][c+2])
+            {
+                marked[r][c] = true;
+                marked[r][c+1] = true;
+                marked[r][c + 2] = true;
+            }
+        }
+    }
+
+    //checking for all possible matches in a column
+    for (int r = 0; r < rows - 2; r++)
+    {
+        for (int c = 0; c < cols; c++)
+        {
+            if (board[r][c]!=0 && board[r][c] == board[r+1][c] && board[r+1][c]==board[r+2][c])
+            {
+                marked[r][c] = true;
+                marked[r+1][c] = true;
+                marked[r + 2][c] = true;
+            }
+        }
+    }
+
+    //counting all the marked candies
+    for (int r = 0; r < rows; r++)
+    {
+        for (int c = 0; c < cols; c++)
+        {
+            if (marked[r][c])
+                count++;
+        }
+    }
+    return count;
+}
+
+
+
 void handleInput()
 {
     readEvents(window, clicked, clickX, clickY, pressedKey);
@@ -235,8 +292,9 @@ void handleInput()
         {
             if (menuChoice == 0)
             {
-                // TODO: New Game: loadLevel(), score = 0
+                
                 loadlevel();
+                cout << findMatches();
                 gameState = PLAYING;
             }
             else if (menuChoice == 1)
@@ -262,7 +320,7 @@ void handleInput()
 
 void updateGame()
 {
-    // TODO: swap, match, fall, refill, score, win/lose
+    // TODO: swap, match, fall, refill, score, win/loss
 }
 
 void drawGame()
