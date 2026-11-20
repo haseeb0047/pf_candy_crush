@@ -1,174 +1,30 @@
-// Candy Crush - SFML 3 skeleton (window, input reading, drawing only)
-// Game logic (load, select, swap, matches, fall, refill, score, save)
-// is NOT here. Those are the team's own work: see the TODO markers.
-
 #include <SFML/Graphics.hpp>
 #include <optional>
 #include <string>
-#include <cstdlib>
-#include <ctime>
+#include<fstream>
+using namespace std;
 
-// ---------------- Constants ----------------
-const int   ROWS = 8, COLS = 8;
-const float CELL = 70.f;                      // one cell is 70 x 70 pixels
-const float BOARD_X = 20.f, BOARD_Y = 100.f;  // top-left corner of the board
-const int   WIN_W = 600, WIN_H = 680;
-const float HUD_H = 80.f;
 
-// Game states
-const int MENU = 0, PLAYING = 1, GAME_OVER = 2;
+const float CELL = 70.f;                        // one cell is 70 x 70 pixels
+const float BOARD_X = 20.f, BOARD_Y = 100.f;    // top-left corner of the board
 
-// Keys we care about (stored in pressedKey)
-const int NO_KEY = 0, KEY_ESCAPE = 1, KEY_ENTER = 2, KEY_UP = 3, KEY_DOWN = 4;
+// Keys jo input se milti hain
+const int NO_KEY = 0, ESCAPE = 1, ENTER = 2, UP = 3, DOWN = 4;
 
-// ---------------- Globals ----------------
-int  board[ROWS][COLS];
-int  score = 0, moves = 0, target = 0;
-int  selRow = -1, selCol = -1;       // -1 means nothing selected
-int  gameState = MENU;
-int  menuChoice = 0;                 // 0 New Game, 1 Continue, 2 Exit
-bool showNoSavedGame = false;        // show "No saved game" on the menu
-bool playerWon = false;              // used by the end screen
+// ---------------- Colours ----------------
+sf::Color colors[7] = { sf::Color(25, 25, 45),  // 0: empty
+                        sf::Color::Red,         // 1
+                        sf::Color(255, 150, 0), // 2: orange
+                        sf::Color::Yellow,      // 3
+                        sf::Color::Green,       // 4
+                        sf::Color::Blue,        // 5
+                        sf::Color(170, 90, 255) }; // 6: purple
 
-// Input values, filled by handleInput
-int  clickX = 0, clickY = 0;
-bool clicked = false;
-int  pressedKey = NO_KEY;
-
-// SFML objects
-sf::RenderWindow window(sf::VideoMode({ WIN_W, WIN_H }), "Candy Crush");
-sf::Font font;
-
-sf::Color colors[7] = {
-    sf::Color(25, 25, 45),     // 0: empty
-    sf::Color(255, 70, 100),   // 1: red
-    sf::Color(255, 150, 0),    // 2: orange
-    sf::Color(255, 210, 50),   // 3: yellow
-    sf::Color(60, 220, 150),   // 4: green
-    sf::Color(70, 120, 255),   // 5: blue
-    sf::Color(170, 90, 255)    // 6: purple
-};
-
-// ---------------- Small drawing helpers ----------------
-
-// Draws text at (x, y). If centered is true, x is the middle of the text.
-void drawText(const std::string& str, float x, float y, unsigned size,
-    sf::Color color, bool centered = false)
-{
-    sf::Text text(font, str, size);
-    text.setFillColor(color);
-    if (centered)
-        x -= text.getLocalBounds().size.x / 2.f;
-    text.setPosition({ x, y });
-    window.draw(text);
-}
-
-// Draws one candy of the given number at row r, column c.
-void drawCandy(int number, int r, int c, bool selected)
-{
-    if (number == 0) return;              // empty cell: no candy
-
-    float x = BOARD_X + c * CELL + 7;
-    float y = BOARD_Y + r * CELL + 7;
-
-    sf::CircleShape candy(28.f);
-    candy.setFillColor(colors[number]);
-    candy.setPosition({ x, y });
-    if (selected)
-    {
-        candy.setOutlineThickness(4.f);
-        candy.setOutlineColor(sf::Color::White);
-    }
-    else
-        candy.setOutlineThickness(0.f);
-    window.draw(candy);
-
-    // small shine so the candy looks glossy
-    sf::CircleShape shine(7.f);
-    shine.setFillColor(sf::Color(255, 255, 255, 120));
-    shine.setPosition({ x + 10, y + 8 });
-    window.draw(shine);
-}
-
-// ---------------- Drawing functions ----------------
-
-// Dark square for every cell, then the candy on top
-void drawBoard()
-{
-    for (int r = 0; r < ROWS; r++)
-    {
-        for (int c = 0; c < COLS; c++)
-        {
-            sf::RectangleShape square({ CELL, CELL });
-            square.setPosition({ BOARD_X + c * CELL, BOARD_Y + r * CELL });
-            square.setFillColor(sf::Color(20, 22, 48));
-            square.setOutlineThickness(1.f);          // visible grid
-            square.setOutlineColor(sf::Color(60, 65, 120));
-            window.draw(square);
-
-            bool selected = (r == selRow && c == selCol);
-            drawCandy(board[r][c], r, c, selected);
-        }
-    }
-}
-
-// The 80 pixel strip at the top: score, moves, target
-void drawHUD()
-{
-    sf::RectangleShape strip({ (float)WIN_W, HUD_H });
-    strip.setFillColor(sf::Color(25, 28, 60));
-    window.draw(strip);
-
-    drawText("SCORE", 100, 12, 16, sf::Color(150, 150, 190), true);
-    drawText(std::to_string(score), 100, 36, 28, sf::Color::White, true);
-
-    drawText("MOVES", 300, 12, 16, sf::Color(150, 150, 190), true);
-    drawText(std::to_string(moves), 300, 36, 28, sf::Color(255, 210, 50), true);
-
-    drawText("TARGET", 500, 12, 16, sf::Color(150, 150, 190), true);
-    drawText(std::to_string(target), 500, 36, 28, sf::Color(60, 220, 150), true);
-}
-
-void drawMenu()
-{
-    drawText("CANDY CRUSH", WIN_W / 2.f, 120, 52, sf::Color(255, 70, 100), true);
-
-    std::string options[3] = { "New Game", "Continue", "Exit" };
-    for (int i = 0; i < 3; i++)
-    {
-        sf::Color col = (i == menuChoice) ? sf::Color(255, 210, 50)
-            : sf::Color(200, 200, 230);
-        std::string label = (i == menuChoice) ? "> " + options[i] + " <" : options[i];
-        drawText(label, WIN_W / 2.f, 280.f + i * 70, 34, col, true);
-    }
-
-    if (showNoSavedGame)
-        drawText("No saved game", WIN_W / 2.f, 540, 24, sf::Color(255, 70, 100), true);
-
-    drawText("Up / Down to move, Enter to choose", WIN_W / 2.f, 620, 16,
-        sf::Color(150, 150, 190), true);
-}
-
-void drawEndScreen()
-{
-    if (playerWon)
-        drawText("YOU WIN", WIN_W / 2.f, 220, 60, sf::Color(60, 220, 150), true);
-    else
-        drawText("GAME OVER", WIN_W / 2.f, 220, 60, sf::Color(255, 70, 100), true);
-
-    drawText("Final score: " + std::to_string(score), WIN_W / 2.f, 330, 32,
-        sf::Color::White, true);
-    drawText("Press Enter", WIN_W / 2.f, 420, 26, sf::Color(255, 210, 50), true);
-}
-
-// ---------------- The three functions of the game loop ----------------
-
-// 1. INPUT: only reads events and saves them in our own variables
-void handleInput()
+// ---------------- Input ----------------
+void readEvents(sf::RenderWindow& window, bool& clicked, int& clickX, int& clickY, int& pressedKey)
 {
     clicked = false;
     pressedKey = NO_KEY;
-
     while (const std::optional event = window.pollEvent())
     {
         if (event->is<sf::Event::Closed>())
@@ -177,74 +33,264 @@ void handleInput()
         {
             if (mouse->button == sf::Mouse::Button::Left)
             {
-                clickX = mouse->position.x;   // where the player clicked, in pixels
+                clickX = mouse->position.x;
                 clickY = mouse->position.y;
                 clicked = true;
             }
         }
         else if (const auto* key = event->getIf<sf::Event::KeyPressed>())
         {
-            if (key->code == sf::Keyboard::Key::Escape)     pressedKey = KEY_ESCAPE;
-            else if (key->code == sf::Keyboard::Key::Enter) pressedKey = KEY_ENTER;
-            else if (key->code == sf::Keyboard::Key::Up)    pressedKey = KEY_UP;
-            else if (key->code == sf::Keyboard::Key::Down)  pressedKey = KEY_DOWN;
+            if (key->code == sf::Keyboard::Key::Escape)
+                pressedKey = ESCAPE;
+            else if (key->code == sf::Keyboard::Key::Enter)
+                pressedKey = ENTER;
+            else if (key->code == sf::Keyboard::Key::Up)
+                pressedKey = UP;
+            else if (key->code == sf::Keyboard::Key::Down)
+                pressedKey = DOWN;
         }
     }
 }
 
-// 2. UPDATE: the game logic goes here (TEAM'S OWN WORK)
-void updateGame()
+// ---------------- Font aur text ----------------
+bool loadFont(sf::Font& font)
 {
+    return font.openFromFile("arial.ttf");
+}
+
+void drawText(sf::RenderWindow& window, const sf::Font& font, const std::string& str,
+    float x, float y, unsigned int size, sf::Color color)
+{
+    sf::Text text(font, str, size);
+    text.setFillColor(color);
+    text.setPosition({ x, y });
+    window.draw(text);
+}
+
+void drawTextCentered(sf::RenderWindow& window, const sf::Font& font, const std::string& str,
+    float y, unsigned int size, sf::Color color)
+{
+    sf::Text text(font, str, size);
+    text.setFillColor(color);
+    sf::FloatRect bounds = text.getLocalBounds();
+    text.setPosition({ (600.f - bounds.size.x) / 2.f - bounds.position.x, y });
+    window.draw(text);
+}
+
+// ---------------- Board ----------------
+void drawBoard(sf::RenderWindow& window, int board[8][8], int selRow, int selCol)
+{
+    sf::RectangleShape square({ CELL, CELL });
+    square.setFillColor(sf::Color(15, 15, 35));
+    square.setOutlineThickness(1.f);
+    square.setOutlineColor(sf::Color(60, 60, 110));
+
+    sf::CircleShape candy(28.f);
+
+    for (int r = 0; r < 8; r++)
+    {
+        for (int c = 0; c < 8; c++)
+        {
+            square.setPosition({ BOARD_X + c * CELL, BOARD_Y + r * CELL });
+            window.draw(square);
+
+            candy.setFillColor(colors[board[r][c]]);
+            candy.setPosition({ BOARD_X + c * CELL + 7, BOARD_Y + r * CELL + 7 });
+            if (r == selRow && c == selCol)
+            {
+                candy.setOutlineThickness(4.f);
+                candy.setOutlineColor(sf::Color::White);
+            }
+            else
+                candy.setOutlineThickness(0.f);
+            window.draw(candy);
+        }
+    }
+}
+
+// ---------------- HUD ----------------
+void drawHUD(sf::RenderWindow& window, const sf::Font& font, int score, int moves, int target)
+{
+    sf::RectangleShape hud({ 600.f, 80.f });
+    hud.setFillColor(sf::Color(25, 25, 55));
+    window.draw(hud);
+
+    drawText(window, font, "SCORE", 40.f, 8.f, 16, sf::Color(150, 150, 190));
+    drawText(window, font, std::to_string(score), 40.f, 35.f, 28, sf::Color::White);
+
+    drawText(window, font, "MOVES", 260.f, 8.f, 16, sf::Color(150, 150, 190));
+    drawText(window, font, std::to_string(moves), 260.f, 35.f, 28, sf::Color::Yellow);
+
+    drawText(window, font, "TARGET", 460.f, 8.f, 16, sf::Color(150, 150, 190));
+    drawText(window, font, std::to_string(target), 460.f, 35.f, 28, sf::Color::Green);
+}
+
+// ---------------- Menu ----------------
+// selected: 0 = New Game, 1 = Continue, 2 = Exit
+void drawMenu(sf::RenderWindow& window, const sf::Font& font, int selected, bool showNoSave)
+{
+    drawTextCentered(window, font, "CANDY CRUSH", 120.f, 56, sf::Color::White);
+
+    const std::string items[3] = { "New Game", "Continue", "Exit" };
+    for (int i = 0; i < 3; i++)
+    {
+        sf::Color col = (i == selected) ? sf::Color::Yellow : sf::Color(170, 170, 200);
+        std::string label = (i == selected) ? "> " + items[i] + " <" : items[i];
+        drawTextCentered(window, font, label, 280.f + i * 70.f, 36, col);
+    }
+
+    if (showNoSave)
+        drawTextCentered(window, font, "No saved game", 520.f, 24, sf::Color::Red);
+}
+
+// ---------------- YOU WIN / GAME OVER ----------------
+void drawEndScreen(sf::RenderWindow& window, const sf::Font& font, bool won, int score)
+{
+    if (won)
+        drawTextCentered(window, font, "YOU WIN", 200.f, 64, sf::Color::Green);
+    else
+        drawTextCentered(window, font, "GAME OVER", 200.f, 64, sf::Color::Red);
+
+    drawTextCentered(window, font, "Score: " + std::to_string(score), 320.f, 36, sf::Color::White);
+    drawTextCentered(window, font, "Press Enter", 420.f, 28, sf::Color(170, 170, 200));
+}
+
+// ---------------- Bonus ----------------
+void drawHint(sf::RenderWindow& window, int r1, int c1, int r2, int c2)
+{
+    sf::RectangleShape box({ CELL, CELL });
+    box.setFillColor(sf::Color::Transparent);
+    box.setOutlineThickness(-4.f);
+    box.setOutlineColor(sf::Color(255, 210, 0));
+
+    box.setPosition({ BOARD_X + c1 * CELL, BOARD_Y + r1 * CELL });
+    window.draw(box);
+    box.setPosition({ BOARD_X + c2 * CELL, BOARD_Y + r2 * CELL });
+    window.draw(box);
+}
+
+void drawShuffling(sf::RenderWindow& window, const sf::Font& font)
+{
+    drawTextCentered(window, font, "Shuffling...", 340.f, 44, sf::Color::White);
+}
+
+
+// Windows and game data
+
+sf::RenderWindow window(sf::VideoMode({ 600, 680 }), "Candy Crush");
+sf::Font font;
+
+int board[8][8];
+int score = 0, moves = 0, target = 0;
+int selRow = -1, selCol = -1;
+int rows, cols;
+
+bool clicked = false;
+int clickX = 0, clickY = 0, pressedKey = NO_KEY;
+
+// Game states
+const int MENU = 0, PLAYING = 1, GAME_OVER = 2;
+int gameState = MENU;           
+int menuChoice = 0;             
+bool showNoSave = false;        
+bool won = false;               
+
+void setupGame()
+{
+    window.setFramerateLimit(60); 
+    loadFont(font);
+}
+
+int loadlevel()   //task2
+{
+    ifstream fin("levels.txt");
+    if (!fin.is_open())
+    {
+        return -1;
+    }
+    fin >> rows >> cols;
+    fin >> moves >> target;
+    for (int r = 0; r < rows; r++)
+    {
+        for (int c = 0; c < cols; c++)
+        {
+            fin >> board[r][c];
+        }
+    }
+    return 0;
+}
+
+void handleInput()
+{
+    readEvents(window, clicked, clickX, clickY, pressedKey);
+
     switch (gameState)
     {
     case MENU:
-        // TODO: Up/Down changes menuChoice, Enter starts New Game / Continue / Exit
+        if (pressedKey == UP && menuChoice > 0)
+            menuChoice--;
+        if (pressedKey == DOWN && menuChoice < 2)
+            menuChoice++;
+        if (pressedKey == ENTER)
+        {
+            if (menuChoice == 0)
+            {
+                // TODO: New Game: loadLevel(), score = 0
+                loadlevel();
+                gameState = PLAYING;
+            }
+            else if (menuChoice == 1)
+            {
+                // TODO: Continue: savegame.txt load karein.
+                // Agar save na ho to showNoSave = true;
+            }
+            else
+                window.close();
+        }
         break;
+
     case PLAYING:
-        // TODO: use clicked, clickX, clickY, pressedKey
-        //       selecting, swapping, matches, clearing, falling, refill,
-        //       score, moves, win / lose, Esc to save
+        // TODO: click se select/swap, Esc se save
         break;
+
     case GAME_OVER:
-        // TODO: Enter empties the save and goes back to the menu
+        if (pressedKey == ENTER)
+            gameState = MENU;
         break;
     }
 }
 
-// 3. DRAW: clear, draw everything for the current state, display
+void updateGame()
+{
+    // TODO: swap, match, fall, refill, score, win/lose
+}
+
 void drawGame()
 {
-    window.clear(sf::Color(16, 18, 40));
+    window.clear(sf::Color(15, 15, 35));
 
     switch (gameState)
     {
     case MENU:
-        drawMenu();
+        drawMenu(window, font, menuChoice, showNoSave);
         break;
     case PLAYING:
-        drawHUD();
-        drawBoard();
+        drawHUD(window, font, score, moves, target);
+        drawBoard(window, board, selRow, selCol);
         break;
     case GAME_OVER:
-        drawEndScreen();
+        drawEndScreen(window, font, won, score);
         break;
     }
 
     window.display();
 }
 
-// ---------------- main ----------------
+// =====================================================================
 int main()
 {
-    srand((unsigned)time(0));
-    window.setFramerateLimit(60);   // same speed on every laptop
+    setupGame();
 
-    // Font: change the path if needed (this one exists on Windows)
-    if (!font.openFromFile("C:/Windows/Fonts/arial.ttf"))
-        return 1;
-
-    // TODO (team): loadLevel() should fill board, moves and target from level.txt
-    gameState = PLAYING;
     while (window.isOpen())
     {
         handleInput();
