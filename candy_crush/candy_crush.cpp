@@ -226,6 +226,8 @@ int loadlevel()
 int findMatches();
 bool CheckAdjancy();
 void SwapCandies();
+void CheckMoves();
+void CheckWinLose();
 // This Function indicates the candy position converting pixels to rows and cols.
 void GetCandyPosition(int& row, int& col) {
     row = (clickY - BOARD_Y) / CELL;
@@ -292,7 +294,11 @@ void SwapCandies()
         selRow = -1;
         selCol = -1;
     }
-  
+    if (findMatches() > 0)
+    {
+        CheckMoves();
+    }
+    CheckWinLose();
 }
 
 //***Task4***
@@ -348,7 +354,10 @@ int findMatches()
     return count;
 }
 // ***Task06***
-
+void CheckMoves()
+{
+        moves--;
+}
 void CheckWinLose()
 {
     if (score >= target )
