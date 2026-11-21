@@ -198,7 +198,7 @@ int clickX = 0, clickY = 0, pressedKey = NO_KEY;
 const int MENU = 0, PLAYING = 1, GAME_OVER = 2;
 int gameState = MENU;           
 int menuChoice = 0;             
-bool showNoSave = false;        
+bool showNoSave = true;        
 bool won = false;               
 
 void setupGame()
@@ -442,22 +442,22 @@ void SavingGame()
     }
     data.close();
 }
-bool ContinueGame()
+void ContinueGame()
 {
     ifstream data("savegame.txt");
-    //Checked whether file is open or not.
-    if (!data.is_open())
+    data >> score >> moves >> target;
+    for (int i = 0;i < 8;i++)
     {
-        //file is not open so no data.
-        return false;
+        for (int j = 0;j < 8;j++)
+        {
+            data >> board[i][j];
+        }
     }
-    //file is open so readed the data or info.
     data.close();
-    return true;
 }
 void EmptySaveFile()
 {
-    ofstream data("savegame.txt");
+    ofstream data("savegame.txt",ios::trunc);
     data.close();
 }
 void handleInput()
@@ -484,15 +484,9 @@ void handleInput()
             {
                 // TODO: Continue: savegame.txt load karein.
                 // Agar save na ho to showNoSave = true;
-                if (ContinueGame())
-                {
-                    gameState = PLAYING;
-               }
-                else
-                {
-                    showNoSave = true;
-                }
-
+                ContinueGame();
+                gameState = PLAYING;
+                
             }
             else
                 window.close();
