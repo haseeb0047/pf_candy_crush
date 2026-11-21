@@ -232,6 +232,7 @@ bool CheckAdjancy();
 void SwapCandies();
 void CheckMoves();
 void CheckWinLose();
+void SavingGame();
 // This Function indicates the candy position converting pixels to rows and cols.
 void GetCandyPosition(int& row, int& col) {
     row = (clickY - BOARD_Y) / CELL;
@@ -425,6 +426,40 @@ void CheckWinLose()
         
     }
 }
+// ***Task08***
+void SavingGame()
+{
+    //opens the file and saves the data into provided file save.txt
+    ofstream data("savegame.txt");
+    data << score << " " << moves << " " << target << " " << endl;
+    for (int i = 0;i < 8;i++)
+    {
+        for (int j = 0;j < 8;j++)
+        {
+            data<<board[i][j] << " ";
+        }
+        data << endl;
+    }
+    data.close();
+}
+bool ContinueGame()
+{
+    ifstream data("savegame.txt");
+    //Checked whether file is open or not.
+    if (!data.is_open())
+    {
+        //file is not open so no data.
+        return false;
+    }
+    //file is open so readed the data or info.
+    data.close();
+    return true;
+}
+void EmptySaveFile()
+{
+    ofstream data("savegame.txt");
+    data.close();
+}
 void handleInput()
 {
     readEvents(window, clicked, clickX, clickY, pressedKey);
@@ -440,7 +475,7 @@ void handleInput()
         {
             if (menuChoice == 0)
             {
-                
+                EmptySaveFile();
                 loadlevel();
                 cout << findMatches();
                 gameState = PLAYING;
@@ -449,6 +484,15 @@ void handleInput()
             {
                 // TODO: Continue: savegame.txt load karein.
                 // Agar save na ho to showNoSave = true;
+                if (ContinueGame())
+                {
+                    gameState = PLAYING;
+               }
+                else
+                {
+                    showNoSave = true;
+                }
+
             }
             else
                 window.close();
@@ -460,6 +504,12 @@ void handleInput()
         if (clicked)
         {
             MouseClick();
+        }
+        // for closing the game temporairily for chai break.
+        if (pressedKey == ESCAPE)
+        {
+            SavingGame();
+            gameState = MENU;
         }
         break;
 
