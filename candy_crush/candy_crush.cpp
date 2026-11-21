@@ -12,6 +12,8 @@ using namespace std;
 const float CELL = 70.f;                        // one cell is 70 x 70 pixels
 const float BOARD_X = 20.f, BOARD_Y = 100.f;    // top-left corner of the board
 const int points = 10;
+const int ROWS = 8;
+const int COLS = 8;
 
 // Keys jo input se milti hain
 const int NO_KEY = 0, ESCAPE = 1, ENTER = 2, UP = 3, DOWN = 4;
@@ -83,7 +85,7 @@ void drawTextCentered(sf::RenderWindow& window, const sf::Font& font, const std:
 }
 
 // ---------------- Board ----------------
-void drawBoard(sf::RenderWindow& window, int board[8][8], int selRow, int selCol)
+void drawBoard(sf::RenderWindow& window, int board[ROWS][COLS], int selRow, int selCol)
 {
     sf::RectangleShape square({ CELL, CELL });
     square.setFillColor(sf::Color(15, 15, 35));
@@ -92,9 +94,9 @@ void drawBoard(sf::RenderWindow& window, int board[8][8], int selRow, int selCol
 
     sf::CircleShape candy(28.f);
 
-    for (int r = 0; r < 8; r++)
+    for (int r = 0; r < ROWS; r++)
     {
-        for (int c = 0; c < 8; c++)
+        for (int c = 0; c < COLS; c++)
         {
             square.setPosition({ BOARD_X + c * CELL, BOARD_Y + r * CELL });
             window.draw(square);
@@ -185,7 +187,7 @@ void drawShuffling(sf::RenderWindow& window, const sf::Font& font)
 sf::RenderWindow window(sf::VideoMode({ 600, 680 }), "Candy Crush");
 sf::Font font;
 
-int board[8][8];
+int board[ROWS][COLS];
 int score = 0, moves = 0, target = 0;
 int selRow = -1, selCol = -1;
 int rows, cols;
@@ -198,7 +200,8 @@ int clickX = 0, clickY = 0, pressedKey = NO_KEY;
 const int MENU = 0, PLAYING = 1, GAME_OVER = 2;
 int gameState = MENU;           
 int menuChoice = 0;             
-bool showNoSave = true;        
+bool showNoSave = false;    
+bool showError = false;
 bool won = false;               
 
 void setupGame()
@@ -235,8 +238,8 @@ void CheckWinLose();
 void SavingGame();
 // This Function indicates the candy position converting pixels to rows and cols.
 void GetCandyPosition(int& row, int& col) {
-    row = (clickY - BOARD_Y) / CELL;
-    col = (clickX - BOARD_X) / CELL;
+    row = (clickY - BOARD_Y) / (int)CELL;
+    col = (clickX - BOARD_X) / (int)CELL;
 }
 // This is used for the candies selection.
 void MouseClick() {
@@ -303,11 +306,11 @@ void SwapCandies()
     {
         CheckMoves();
     }
-    CheckWinLose();
+    
 }
 
 //***Task4***
-bool marked[8][8];
+bool marked[ROWS][COLS];
 int findMatches()
 {
     int count = 0;
@@ -368,8 +371,10 @@ void clearCandies()
         for (int c = 0; c < cols; c++)
         {
             if (marked[r][c])
+            {
                 board[r][c] = 0;
                 score += points;
+            }
         }
     }
 }
@@ -408,20 +413,23 @@ void refillCandies()
 }
 
 // ***Task06***
+void EmptySaveFile();
 void CheckMoves()
 {
-        moves--;
+    moves--;
 }
 void CheckWinLose()
 {
     if (score >= target )
     {
         won = true;
+        EmptySaveFile();
         gameState = GAME_OVER;
     }
     else if (moves <= 0 )
     {
         won = false;
+        EmptySaveFile();
         gameState = GAME_OVER;
         
     }
@@ -432,33 +440,40 @@ void SavingGame()
     //opens the file and saves the data into provided file save.txt
     ofstream data("savegame.txt");
     data << score << " " << moves << " " << target << " " << endl;
-    for (int i = 0;i < 8;i++)
+    for (int i = 0;i < ROWS;i++)
     {
-        for (int j = 0;j < 8;j++)
+        for (int j = 0;j < COLS;j++)
         {
             data<<board[i][j] << " ";
         }
         data << endl;
     }
+
     data.close();
 }
 void ContinueGame()
 {
     ifstream data("savegame.txt");
-    data >> score >> moves >> target;
-    for (int i = 0;i < 8;i++)
+    if (!(data >> score >> moves >> target))   // file nahi hai ya khali hai
     {
-        for (int j = 0;j < 8;j++)
-        {
-            data >> board[i][j];
-        }
+        showNoSave = true;
+        return;
     }
-    data.close();
+    rows = ROWS;
+    cols = COLS;
+    for (int i = 0; i < ROWS; i++)
+        for (int j = 0; j < COLS; j++)
+            data >> board[i][j];
+
+    selRow = selCol = -1;
+    showNoSave = false;
+    gameState = PLAYING;
 }
 void EmptySaveFile()
 {
     ofstream data("savegame.txt",ios::trunc);
     data.close();
+
 }
 void handleInput()
 {
@@ -475,18 +490,23 @@ void handleInput()
         {
             if (menuChoice == 0)
             {
-                EmptySaveFile();
-                loadlevel();
-                cout << findMatches();
-                gameState = PLAYING;
+                if (loadlevel() == -1)
+                {
+                    showError = true;
+                }
+                else
+                {
+                    showError = false;
+                    score = 0;
+                    selRow = -1;
+                    selCol = -1;
+                    gameState = PLAYING;
+                    showNoSave = false;
+                }
             }
             else if (menuChoice == 1)
             {
-                // TODO: Continue: savegame.txt load karein.
-                // Agar save na ho to showNoSave = true;
                 ContinueGame();
-                gameState = PLAYING;
-                
             }
             else
                 window.close();
@@ -516,7 +536,15 @@ void handleInput()
 
 void updateGame()
 {
-    // TODO: swap, match, fall, refill, score, win/loss
+    if (gameState != PLAYING)
+        return;
+    while (findMatches() > 0)
+    {
+        clearCandies();
+        fallingCandies();
+        refillCandies();
+    }
+    CheckWinLose();
     
 }
 
@@ -528,6 +556,8 @@ void drawGame()
     {
     case MENU:
         drawMenu(window, font, menuChoice, showNoSave);
+        if (showError)
+            drawTextCentered(window, font, "level.txt not found", 570.f, 24, sf::Color::Red);
         break;
     case PLAYING:
         drawHUD(window, font, score, moves, target);
