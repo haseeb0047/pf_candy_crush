@@ -221,7 +221,7 @@ int loadlevel()
     }
     return 0;
 }
-// Part 03 
+// ***TASK 03***
 // This Function indicates the candy position converting pixels to rows and cols.
 void GetCandyPosition(int& row, int& col) {
     row = (clickY - BOARD_Y) / CELL;
@@ -244,9 +244,10 @@ void MouseClick() {
         int SecondCol = col;
     }
 }
+
 bool CheckAdjancy()
 {
-    if ((selRow==SecondRow&&(selCol==SecondCol+1 || selCol+1 == SecondCol))||(selCol==SecondCol&&(selRow=SecondRow+1||selRow+1==SecondRow)))
+    if ((selRow==SecondRow&&(selCol==SecondCol+1 || selCol+1 == SecondCol))||(selCol==SecondCol&&(selRow==SecondRow+1||selRow+1==SecondRow)))
     {
         return true;
     }
@@ -261,9 +262,10 @@ void SwapCandies()
         temp = board[selRow][selCol];
         board[selRow][selCol] = board[SecondRow][SecondCol];
         board[SecondRow][SecondCol] = temp;
+        
     }
+  
 }
-
 void
 //***Task4***
 bool marked[8][8];
@@ -317,9 +319,27 @@ int findMatches()
     }
     return count;
 }
-
-
-
+// ***Task06***
+void moves() {
+    if (findMatches() > 0)
+    {
+        moves--;
+    }
+}
+void CheckWinLose()
+{
+    if (score >= target )
+    {
+        won = true;
+        gameState = GAME_OVER;
+    }
+    else if (moves == 0 )
+    {
+        won = false;
+        gameState = GAME_OVER;
+        
+    }
+}
 void handleInput()
 {
     readEvents(window, clicked, clickX, clickY, pressedKey);
