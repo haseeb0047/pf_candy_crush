@@ -3,11 +3,15 @@
 #include <optional>
 #include <string>
 #include<fstream>
+#include <cstdlib>
+#include <ctime>
+
 using namespace std;
 
 
 const float CELL = 70.f;                        // one cell is 70 x 70 pixels
 const float BOARD_X = 20.f, BOARD_Y = 100.f;    // top-left corner of the board
+const int points = 10;
 
 // Keys jo input se milti hain
 const int NO_KEY = 0, ESCAPE = 1, ENTER = 2, UP = 3, DOWN = 4;
@@ -353,6 +357,55 @@ int findMatches()
     }
     return count;
 }
+// *** Task 5 ***
+
+//clearin the candies from the positions of marked array
+void clearCandies()
+{
+    for (int r = 0; r < rows; r++)
+    {
+        for (int c = 0; c < cols; c++)
+        {
+            if (marked[r][c])
+                board[r][c] = 0;
+                score += points;
+        }
+    }
+}
+
+void fallingCandies()
+{
+    //going one col at a time
+    for (int c = 0; c < cols; c++)
+    {
+        int writeRow = 7;
+        for (int r = rows - 1; r >= 0; r--)
+        {
+            if (board[r][c] != 0)
+            {
+                board[writeRow][c] = board[r][c];
+                writeRow--;
+            }
+        }
+        //making all the cells above writerow empty
+        for (int r = 0; r <= writeRow; r++)
+        {
+            board[r][c] = 0;
+        }
+    }
+}
+void refillCandies()
+{
+    for (int r = 0; r < rows; r++)
+    {
+        for (int c = 0; c < cols; c++)
+        {
+            if (board[r][c] == 0)
+                board[r][c] = rand() % 6 + 1;
+        }
+    }
+}
+
 // ***Task06***
 void CheckMoves()
 {
@@ -447,6 +500,7 @@ void drawGame()
 // =====================================================================
 int main()
 {
+    srand(time(0));
     setupGame();
 
     while (window.isOpen())
