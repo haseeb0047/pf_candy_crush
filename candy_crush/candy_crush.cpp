@@ -185,7 +185,8 @@ int board[8][8];
 int score = 0, moves = 0, target = 0;
 int selRow = -1, selCol = -1;
 int rows, cols;
-
+int SecondRow = -1;
+int SecondCol = -1;
 bool clicked = false;
 int clickX = 0, clickY = 0, pressedKey = NO_KEY;
 
@@ -240,8 +241,8 @@ void MouseClick() {
     else if (selRow != -1 && selCol != -1)
     {
         // This Indicates for 2nd candy selection if 1st is already selected.
-        int SecondRow = row;
-        int SecondCol = col;
+        SecondRow = row;
+        SecondCol = col;
     }
 }
 
@@ -266,7 +267,7 @@ void SwapCandies()
     }
   
 }
-void
+
 //***Task4***
 bool marked[8][8];
 int findMatches()
@@ -320,12 +321,7 @@ int findMatches()
     return count;
 }
 // ***Task06***
-void moves() {
-    if (findMatches() > 0)
-    {
-        moves--;
-    }
-}
+
 void CheckWinLose()
 {
     if (score >= target )
@@ -333,7 +329,7 @@ void CheckWinLose()
         won = true;
         gameState = GAME_OVER;
     }
-    else if (moves == 0 )
+    else if (moves <= 0 )
     {
         won = false;
         gameState = GAME_OVER;
@@ -384,6 +380,7 @@ void handleInput()
 void updateGame()
 {
     // TODO: swap, match, fall, refill, score, win/loss
+    
 }
 
 void drawGame()
