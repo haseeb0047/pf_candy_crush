@@ -227,6 +227,9 @@ int loadlevel()
     return 0;
 }
 // ***TASK 03***
+int findMatches();
+bool CheckAdjancy();
+void SwapCandies();
 // This Function indicates the candy position converting pixels to rows and cols.
 void GetCandyPosition(int& row, int& col) {
     row = (clickY - BOARD_Y) / CELL;
@@ -234,6 +237,11 @@ void GetCandyPosition(int& row, int& col) {
 }
 // This is used for the candies selection.
 void MouseClick() {
+    // This is the condition that avoid click outside the Board
+    if (clickX < BOARD_X || clickX >= BOARD_X + cols * CELL || clickY < BOARD_Y || clickY >= BOARD_Y + rows * CELL)
+    {
+        return;
+    }
     int row, col;
     GetCandyPosition(row, col);
     // This is used for 1st Candy if 1st candy is to be selected.
@@ -242,13 +250,24 @@ void MouseClick() {
         selRow = row;
         selCol = col;
     }
-    else if (selRow != -1 && selCol != -1)
+    else
     {
         // This Indicates for 2nd candy selection if 1st is already selected.
         SecondRow = row;
         SecondCol = col;
+// If it is neighbour then we will swap else we will not swap and select a new candy
+        if (CheckAdjancy())
+        {
+            SwapCandies();
+        }
+        else
+        {
+            selRow = row;
+            selCol = col;
+        }
     }
 }
+
 
 bool CheckAdjancy()
 {
@@ -267,7 +286,15 @@ void SwapCandies()
         temp = board[selRow][selCol];
         board[selRow][selCol] = board[SecondRow][SecondCol];
         board[SecondRow][SecondCol] = temp;
-        
+        // Checking for if matches doesnot exists.
+        if (findMatches() == 0)
+        {
+            temp = board[selRow][selCol];
+            board[selRow][selCol] = board[SecondRow][SecondCol];
+            board[SecondRow][SecondCol] = temp;
+        }
+        selRow = -1;
+        selCol = -1;
     }
   
 }
@@ -421,6 +448,10 @@ void handleInput()
 
     case PLAYING:
         // TODO: click se select/swap, Esc se save
+        if (clicked)
+        {
+            MouseClick();
+        }
         break;
 
     case GAME_OVER:
