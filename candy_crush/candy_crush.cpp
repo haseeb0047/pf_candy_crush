@@ -244,7 +244,27 @@ void MouseClick() {
         int SecondCol = col;
     }
 }
+bool CheckAdjancy()
+{
+    if ((selRow==SecondRow&&(selCol==SecondCol+1 || selCol+1 == SecondCol))||(selCol==SecondCol&&(selRow=SecondRow+1||selRow+1==SecondRow)))
+    {
+        return true;
+    }
+    return false;
+}
+void SwapCandies()
+{
+   
+    if (CheckAdjancy())
+    {
+        int temp;
+        temp = board[selRow][selCol];
+        board[selRow][selCol] = board[SecondRow][SecondCol];
+        board[SecondRow][SecondCol] = temp;
+    }
+}
 
+void
 //***Task4***
 bool marked[8][8];
 int findMatches()
