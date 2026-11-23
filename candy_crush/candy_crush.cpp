@@ -202,7 +202,8 @@ int gameState = MENU;
 int menuChoice = 0;             
 bool showNoSave = false;    
 bool showError = false;
-bool won = false;               
+bool won = false;       
+int nomove = 0;
 
 void setupGame()
 {
@@ -473,8 +474,61 @@ void EmptySaveFile()
 {
     ofstream data("savegame.txt",ios::trunc);
     data.close();
-
 }
+
+// bonus task
+void swap(int r1, int c1, int r2, int c2, int board[][8])
+{
+    int temp = board[r1][c1];
+    board[r1][c1] = board[r2][c2];
+    board[r2][c2] = temp;
+}
+// show hint
+int r1, r2, c1, c2;
+bool hint()
+{
+    for (int r = 0; r < ROWS; r++)
+    {
+        for (int c = 0; c < COLS; c++)
+        {
+            //checking whether swap with right neighbor works
+            if (c < COLS-1)
+            {
+                swap(r, c, r, c + 1, board);
+                if (findMatches())
+                {
+                    r1 = r;
+                    c1 = c;
+                    r2 = r;
+                    c2 = c + 1;
+                    swap(r, c, r, c + 1, board);//if condition true then swap back
+                    findMatches();
+                    return true;
+                }
+                swap(r, c, r, c + 1, board);//if condition false then swap back
+            }
+
+            //checking whether swap with down neighbor works
+            if (r < ROWS - 1)
+            {
+                swap(r, c, r + 1, c, board);
+                if (findMatches())
+                {
+                    r1 = r;
+                    c1 = c;
+                    r2 = r + 1;
+                    c2 = c;
+                    swap(r, c, r + 1, c, board);//if condition true then swap back
+                    findMatches();
+                    return true;
+                }
+                swap(r, c, r + 1, c, board);//if condition false then swap back
+            }
+        }
+    }
+    return false;
+}
+
 void handleInput()
 {
     readEvents(window, clicked, clickX, clickY, pressedKey);
@@ -518,6 +572,7 @@ void handleInput()
         if (clicked)
         {
             MouseClick();
+            nomove = 0; //if user makes a move it become 0
         }
         // for closing the game temporairily for chai break.
         if (pressedKey == ESCAPE)
@@ -538,6 +593,10 @@ void updateGame()
 {
     if (gameState != PLAYING)
         return;
+
+    nomove++;
+    if (nomove == 300)  //checking if user has not made a move in 5 seconds
+        hint();
     while (findMatches() > 0)
     {
         clearCandies();
@@ -562,6 +621,8 @@ void drawGame()
     case PLAYING:
         drawHUD(window, font, score, moves, target);
         drawBoard(window, board, selRow, selCol);
+        if (nomove >= 300)
+            drawHint(window, r1, c1, r2, c2);
         break;
     case GAME_OVER:
         drawEndScreen(window, font, won, score);
