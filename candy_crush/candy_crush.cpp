@@ -529,6 +529,25 @@ bool hint()
     return false;
 }
 
+//if no swap works shuffle the board
+void shuffle()
+{
+    //checks whether there is any working swap or not using hint function
+    if (!hint())
+    {
+        do
+        {
+            for (int r = 0; r < ROWS; r++)
+            {
+                for (int c = 0; c < COLS; c++)
+                {
+                    board[r][c] = rand() % 6 + 1;
+                }
+            }
+        } while (findMatches() != 0 || !(hint()));
+    }
+}
+
 void handleInput()
 {
     readEvents(window, clicked, clickX, clickY, pressedKey);
@@ -556,6 +575,8 @@ void handleInput()
                     selCol = -1;
                     gameState = PLAYING;
                     showNoSave = false;
+                    if (!hint())
+                        shuffle();
                 }
             }
             else if (menuChoice == 1)
@@ -603,6 +624,8 @@ void updateGame()
         fallingCandies();
         refillCandies();
     }
+    if (!hint())
+        shuffle();
     CheckWinLose();
     
 }
@@ -623,6 +646,8 @@ void drawGame()
         drawBoard(window, board, selRow, selCol);
         if (nomove >= 300)
             drawHint(window, r1, c1, r2, c2);
+        if (!hint())
+            drawShuffling(window,font);
         break;
     case GAME_OVER:
         drawEndScreen(window, font, won, score);
